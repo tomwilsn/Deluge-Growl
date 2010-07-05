@@ -51,7 +51,7 @@ DEFAULT_PREFS = {
     "growl_password": "",
     "growl_port": 9887,
     "growl_torrent_completed": True,
-    "growl_torrent_add": True,
+    "growl_torrent_added": True,
     "growl_sticky": False,
     "growl_priority": 0
 }
@@ -97,10 +97,8 @@ class Core(CorePluginBase):
     def disable(self):
         log.debug("Growl core plugin disabled!")
         #component.get("AlertManager").deregister_handler(self.on_alert_torrent_finished)
-        event_manager = component.get("EventManager")
-        event_manager.deregister_event_handler(self.on_torrent_finished)
-        event_manager.deregister_event_handler(self.on_torrent_added);
-           
+        self.disconnect_events();
+        
         self.config.save()
 
     def update(self):
@@ -109,7 +107,12 @@ class Core(CorePluginBase):
     def connect_events(self):
         event_manager = component.get("EventManager")
         event_manager.register_event_handler("TorrentFinishedEvent", self.on_torrent_finished)
-        event_manager.register_event_handler("TorrentAddedEvent", self.on_torrent_added);
+        event_manager.register_event_handler("TorrentAddedEvent", self.on_torrent_added)
+    
+    def disconnect_events(self):
+        event_manager = component.get("EventManager")
+        event_manager.deregister_event_handler("TorrentFinishedEvent", self.on_torrent_finished)
+        event_manager.deregister_event_handler("TorrentAddedEvent", self.on_torrent_added)
     
 
     def on_torrent_added(self, torrent_id):

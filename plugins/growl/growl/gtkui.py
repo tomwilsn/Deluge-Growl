@@ -63,6 +63,7 @@ class GtkUI(GtkPluginBase):
 
     def cb_get_config(self, core_config):
         self.glade.get_widget("growl_sticky").set_active(core_config["growl_sticky"])
+        self.glade.get_widget("growl_torrent_added").set_active(core_config["growl_torrent_added"])
         self.glade.get_widget("growl_torrent_completed").set_active(core_config["growl_torrent_completed"])
         self.glade.get_widget("growl_host").set_text(core_config["growl_host"])
         self.glade.get_widget("growl_port").set_value(core_config["growl_port"])
@@ -72,6 +73,7 @@ class GtkUI(GtkPluginBase):
     def on_apply_prefs(self):
         core_config = {
             "growl_sticky": self.glade.get_widget("growl_sticky").get_active(),
+            "growl_torrent_added": self.glade.get_widget("growl_torrent_added").get_active(),
             "growl_torrent_completed": self.glade.get_widget("growl_torrent_completed").get_active(),
             "growl_host": self.glade.get_widget("growl_host").get_text(),
             "growl_port": self.glade.get_widget("growl_port").get_value(),

@@ -34,6 +34,7 @@
 #
 
 from twisted.internet import defer
+from twisted.internet import reactor
 
 from deluge.log import LOG as log
 from deluge.plugins.pluginbase import CorePluginBase
@@ -50,6 +51,7 @@ DEFAULT_PREFS = {
     "growl_password": "",
     "growl_port": 9887,
     "growl_torrent_completed": True,
+    "growl_torrent_add": True,
     "growl_sticky": False,
     "growl_priority": 0
 }
@@ -62,12 +64,13 @@ class Core(CorePluginBase):
         s = socket(AF_INET,SOCK_DGRAM)
         p = GrowlRegistrationPacket("Deluge", self.config['growl_password'])
         p.addNotification("Download Completed", True)
+        p.addNotification("Torrent Added", True)
         s.sendto(p.payload(), addr)
         s.close()
 
     def sendGrowl(self, noteType, title, description, sticky=False, priority=0):
     
-        p = GrowlNotificationPacket(application="Deluge", notification="Download Completed", title=title, description=description, priority=priority, sticky=sticky, password=self.config['growl_password']);
+        p = GrowlNotificationPacket(application="Deluge", notification=noteType, title=title, description=description, priority=priority, sticky=sticky, password=self.config['growl_password']);
 
         addr = (self.config['growl_host'], self.config['growl_port'])
         s = socket(AF_INET,SOCK_DGRAM)
@@ -76,25 +79,63 @@ class Core(CorePluginBase):
          
     def enable(self):
         self.config = deluge.configmanager.ConfigManager("growl.conf", DEFAULT_PREFS)
-        component.get("AlertManager").register_handler("torrent_finished_alert", self.on_alert_torrent_finished)
         
         self.growlInit()	    
-        #self.sendGrowl("Download Completed", "Deluge Started", "Whee!")	    
+
+        #component.get("AlertManager").register_handler("torrent_finished_alert", self.on_torrent_finished)
+
+        d = defer.Deferred()
+        # simulate a delayed result by asking the reactor to schedule
+        # gotResults in 2 seconds time
+        reactor.callLater(2, self.connect_events)
+
         log.debug("Growl core plugin enabled!")
+
+        return d
+
 
     def disable(self):
         log.debug("Growl core plugin disabled!")
-        component.get("AlertManager").deregister_handler(self.on_alert_torrent_finished)
+        #component.get("AlertManager").deregister_handler(self.on_alert_torrent_finished)
+        event_manager = component.get("EventManager")
+        event_manager.deregister_event_handler(self.on_torrent_finished)
+        event_manager.deregister_event_handler(self.on_torrent_added);
+           
         self.config.save()
 
     def update(self):
         pass
         
-    def on_alert_torrent_finished(self, alert):
+    def connect_events(self):
+        event_manager = component.get("EventManager")
+        event_manager.register_event_handler("TorrentFinishedEvent", self.on_torrent_finished)
+        event_manager.register_event_handler("TorrentAddedEvent", self.on_torrent_added);
+    
+
+    def on_torrent_added(self, torrent_id):
+        if (self.config['growl_torrent_added'] == False):
+            return
+        try:
+          #torrent_id = str(alert.handle.info_hash())
+          torrent = component.get("TorrentManager")[torrent_id]
+          torrent_status = torrent.get_status({})
+
+          message = _("Added Torrent \"%(name)s\"") % torrent_status
+          
+          d = defer.maybeDeferred(self.sendGrowl, "Torrent Added", "Torrent Added", message, self.config['growl_sticky'], self.config['growl_priority'])
+          #d.addCallback(self._on_notify_sucess, 'email')
+          #d.addErrback(self._on_notify_failure, 'email')
+          
+          return d
+        
+        except Exception, e:
+          log.error("error in alert %s" % e)
+
+    def on_torrent_finished(self, torrent_id):
         if (self.config['growl_torrent_completed'] == False):
             return
         try:
-          torrent_id = str(alert.handle.info_hash())
+          #torrent_id = str(alert.handle.info_hash())
           torrent = component.get("TorrentManager")[torrent_id]
           torrent_status = torrent.get_status({})
 

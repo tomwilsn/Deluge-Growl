@@ -46,10 +46,12 @@ from socket import AF_INET, SOCK_DGRAM, socket
 from growlapi.growl import GrowlRegistrationPacket
 from growlapi.growl import GrowlNotificationPacket
 
+from gntp.notifier import GrowlNotifier
+
 DEFAULT_PREFS = {
     "growl_host": "localhost",
     "growl_password": "",
-    "growl_port": 9887,
+    "growl_port": 23053,
     "growl_torrent_completed": True,
     "growl_torrent_added": True,
     "growl_sticky": False,
@@ -60,22 +62,42 @@ class Core(CorePluginBase):
     
     def growlInit(self):
         
-        addr = (self.config['growl_host'], self.config['growl_port'])
-        s = socket(AF_INET,SOCK_DGRAM)
-        p = GrowlRegistrationPacket("Deluge", self.config['growl_password'])
-        p.addNotification("Download Completed", True)
-        p.addNotification("Torrent Added", True)
-        s.sendto(p.payload(), addr)
-        s.close()
+#        addr = (self.config['growl_host'], self.config['growl_port'])
+#        s = socket(AF_INET,SOCK_DGRAM)
+#        p = GrowlRegistrationPacket("Deluge", self.config['growl_password'])
+#        p.addNotification("Download Completed", True)
+#        p.addNotification("Torrent Added", True)
+#        s.sendto(p.payload(), addr)
+#        s.close()
+
+        self.growl = GrowlNotifier(
+    		applicationName = "Deluge",
+    		notifications = ["Torrent Added", "Download Completed"],
+    		defaultNotifications = ["Torrent Added"],
+    		hostname = self.config['growl_host'],
+    		password = self.config['growl_password'],
+    		port = self.config['growl_port'],
+    		debug = 0
+    	)
+    	result = self.growl.register()
+    	
 
     def sendGrowl(self, noteType, title, description, sticky=False, priority=0):
     
-        p = GrowlNotificationPacket(application="Deluge", notification=noteType, title=title, description=description, priority=priority, sticky=sticky, password=self.config['growl_password']);
-
-        addr = (self.config['growl_host'], self.config['growl_port'])
-        s = socket(AF_INET,SOCK_DGRAM)
-        s.sendto(p.payload(), addr)
-        s.close()
+#        p = GrowlNotificationPacket(application="Deluge", notification=noteType, title=title, description=description, priority=priority, sticky=sticky, password=self.config['growl_password']);
+#        addr = (self.config['growl_host'], self.config['growl_port'])
+#        s = socket(AF_INET,SOCK_DGRAM)
+#        s.sendto(p.payload(), addr)
+#        s.close()
+        result = self.growl.notify(
+    		noteType = noteType,
+    		title = title,
+    		description = description,
+    		icon = '',
+    		sticky = sticky,
+    		priority = priority
+    	)
+        
          
     def enable(self):
         self.config = deluge.configmanager.ConfigManager("growl.conf", DEFAULT_PREFS)

@@ -36,7 +36,7 @@ from setuptools import setup
 __plugin_name__ = "Growl"
 __author__ = "Tom Wilson"
 __author_email__ = "tom@toms-stuff.net"
-__version__ = "0.3"
+__version__ = "0.4"
 __url__ = "http://github.com/kabal/Deluge-Growl"
 __license__ = "GPLv3"
 __description__ = "Fires Growl Notifications for torrent events"
